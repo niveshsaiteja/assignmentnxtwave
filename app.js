@@ -44,7 +44,7 @@ const makeServerAndDataBaseStart = async () => {
     });
 
     app.listen(3000, () => {
-      console.log("server is runnin at port 3000");
+      console.log("server is running at port 3000");
     });
   } catch (e) {
     console.log(`error occured ${e}`);
@@ -109,14 +109,14 @@ app.get("/user/tweets/feed/", authenticateToken, async (request, response) => {
   let { user_id } = await db.get(
     `SELECT user_id FROM user WHERE username = '${username}';`
   );
-  let getQuery = `SELECT user.username as username,
-  tweet.tweet as tweet,
-  tweet.date_time as dateTime 
-  FROM FOLLOWER INNER JOIN 
-  TWEET ON FOLLOWER.following_user_id = tweet.user_id 
-  inner join user 
-  on user.user_id = tweet.user_id  
-  WHERE follower.follower_user_id = ${user_id} limit 4;`;
+  let getQuery = `SELECT user.username AS username,
+  tweet.tweet AS tweet,
+  tweet.date_time AS dateTime 
+  FROM follower INNER JOIN 
+  tweet ON follower.following_user_id = tweet.user_id 
+ INNER JOIN user 
+  ON user.user_id = tweet.user_id  
+  WHERE follower.follower_user_id = ${user_id} LIMIT 4;`;
 
   let getArray = await db.all(getQuery);
   response.status(200);
@@ -129,10 +129,10 @@ app.get("/user/following/", authenticateToken, async (request, response) => {
   let { user_id } = await db.get(
     `SELECT user_id FROM user WHERE username = '${username}';`
   );
-  let getQuery = `select user.name as name 
-    from user inner join follower 
-    on user.user_id = follower.following_user_id 
-    where follower.follower_user_id = '${user_id}';`;
+  let getQuery = `SELECT user.name AS name 
+    FROM user INNER JOIN follower 
+    ON user.user_id = follower.following_user_id 
+    WHERE follower.follower_user_id = '${user_id}';`;
 
   let getArray = await db.all(getQuery);
   response.status(200);
@@ -145,10 +145,10 @@ app.get("/user/followers/", authenticateToken, async (request, response) => {
   let { user_id } = await db.get(
     `SELECT user_id FROM user WHERE username = '${username}';`
   );
-  let getQuery = `select user.name as name 
-  from user inner join follower 
-  on user.user_id = follower.follower_user_id 
-  where follower.following_user_id = ${user_id};`;
+  let getQuery = `SELECT user.name AS name 
+  FROM user INNER JOIN follower 
+  ON user.user_id = follower.follower_user_id 
+  WHERE follower.following_user_id = ${user_id};`;
 
   let getArray = await db.all(getQuery);
   response.status(200);
@@ -162,18 +162,18 @@ app.get("/tweets/:tweetId/", authenticateToken, async (request, response) => {
   let { user_id } = await db.get(
     `SELECT user_id FROM user WHERE username = '${username}';`
   );
-  let getQuery = `select tweet.tweet as tweet,
-    count(like.like_id) as likes,
-    count(reply.reply_id) as replies,
-    tweet.date_time as dateTime 
-    from follower inner join 
-    tweet on follower.following_user_id = tweet.user_id 
-    inner join reply on 
+  let getQuery = `SELECT tweet.tweet AS tweet,
+    count(like.like_id) AS likes,
+    count(reply.reply_id) AS replies,
+    tweet.date_time AS dateTime 
+    FROM follower INNER JOIN 
+    tweet ON follower.following_user_id = tweet.user_id 
+    INNER JOIN reply on 
     tweet.tweet_id = reply.tweet_id 
-    inner join like on 
-    tweet.tweet_id = like.tweet_id where 
+    INNER JOIN like ON 
+    tweet.tweet_id = like.tweet_id WHERE 
     follower.follower_user_id = ${user_id} 
-    and tweet.tweet_id = ${tweetId};`;
+    AND tweet.tweet_id = ${tweetId};`;
 
   let getArray = await db.get(getQuery);
   if (getArray.tweet === null) {
@@ -195,15 +195,15 @@ app.get(
     let { user_id } = await db.get(
       `SELECT user_id FROM user WHERE username = '${username}';`
     );
-    let getQuery = `select user.username as likes 
-    from follower inner join 
-    tweet on follower.following_user_id = tweet.user_id 
-    inner join like on 
+    let getQuery = `SELECT user.username AS likes 
+    FROM follower INNER JOIN 
+    tweet ON follower.following_user_id = tweet.user_id 
+    INNER JOIN like ON 
     tweet.tweet_id = like.tweet_id 
-    inner join user on 
+    INNER JOIN user ON 
     like.user_id = user.user_id 
-    where follower.follower_user_id = ${user_id} 
-    and tweet.tweet_id = ${tweetId};`;
+    WHERE follower.follower_user_id = ${user_id} 
+    AND tweet.tweet_id = ${tweetId};`;
 
     let getArray = await db.all(getQuery);
 
@@ -236,16 +236,16 @@ app.get(
     let { user_id } = await db.get(
       `SELECT user_id FROM user WHERE username = '${username}';`
     );
-    let getQuery = `select user.name as name, 
-    reply.reply as reply 
-    from follower inner join 
-    tweet on follower.following_user_id = tweet.user_id 
-    inner join reply on 
+    let getQuery = `SELECT user.name AS name, 
+    reply.reply AS reply 
+    FROM follower INNER JOIN 
+    tweet ON follower.following_user_id = tweet.user_id 
+    INNER JOIN reply ON 
     tweet.tweet_id = reply.tweet_id 
-    inner join user on
+    INNER JOIN user ON
     reply.user_id = user.user_id 
-    where follower.follower_user_id = ${user_id} 
-    and tweet.tweet_id = ${tweetId};`;
+    WHERE follower.follower_user_id = ${user_id} 
+    AND tweet.tweet_id = ${tweetId};`;
 
     let getArray = await db.all(getQuery);
 
@@ -270,17 +270,17 @@ app.get("/user/tweets/", authenticateToken, async (request, response) => {
     `SELECT user_id FROM user WHERE username = '${username}';`
   );
 
-  let getQuery = `select tweet.tweet as tweet,
-    count(like.like_id) as likes,
-    count(reply.reply_id)as replies,
-    tweet.date_time as dateTime 
-    from user inner join tweet 
-    on user.user_id = tweet.user_id 
-    inner join reply on 
+  let getQuery = `SELECT tweet.tweet AS tweet,
+    count(like.like_id) AS likes,
+    count(reply.reply_id)AS replies,
+    tweet.date_time AS dateTime 
+    FROM user INNER JOIN tweet 
+    ON user.user_id = tweet.user_id 
+    INNER JOIN reply ON 
     tweet.tweet_id = reply.tweet_id 
-    inner join like on 
+    INNER JOIN like ON 
     tweet.tweet_id = like.tweet_id 
-    where user.user_id = ${user_id} group by tweet.tweet_id;`;
+    WHERE user.user_id = ${user_id} GROUP BY tweet.tweet_id;`;
 
   let getArray = await db.all(getQuery);
   console.log(getArray);
@@ -299,8 +299,8 @@ app.post("/user/tweets/", authenticateToken, async (request, response) => {
 
   let date = format(new Date(), "MM/dd/yyyy hh:mm:ss");
   console.log(date);
-  let insertQuery = `insert into tweet(tweet,user_id,date_time)
-    values('${tweet}',${user_id},'${date}');`;
+  let insertQuery = `INSERT INTO tweet(tweet,user_id,date_time)
+    VALUES('${tweet}',${user_id},'${date}');`;
 
   await db.run(insertQuery);
   response.status(200);
@@ -318,9 +318,9 @@ app.delete(
       `SELECT user_id FROM user WHERE username = '${username}';`
     );
 
-    let deleteQuery = `delete from tweet where tweet_id = ${tweetId} and user_id = ${user_id};`;
+    let deleteQuery = `DELETE FROM tweet WHERE tweet_id = ${tweetId} AND user_id = ${user_id};`;
 
-    let getQuery = `select * from tweet where tweet_id = ${tweetId} and user_id = ${user_id};`;
+    let getQuery = `SELECT * FROM tweet WHERE tweet_id = ${tweetId} AND user_id = ${user_id};`;
     let getData = await db.get(getQuery);
     if (getData === undefined) {
       response.status(401);
