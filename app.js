@@ -4,37 +4,14 @@ const { open } = require("sqlite");
 const path = require("path");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const format = require("date-fns/format");
+//const format = require("date-fns/format");
 
 const app = express();
-exports.app = app;
 app.use(express.json());
 
 let db = null;
 
 const dbPath = path.join(__dirname, "twitterClone.db");
-
-const authenticateToken = (request, response, next) => {
-  let jwtToken;
-  const authHeader = request.headers["authorization"];
-  if (authHeader !== undefined) {
-    jwtToken = authHeader.split(" ")[1];
-  }
-  if (jwtToken === undefined) {
-    response.status(401);
-    response.send("Invalid JWT Token");
-  } else {
-    jwt.verify(jwtToken, "secretKey", async (error, payload) => {
-      if (error) {
-        response.status(401);
-        response.send("Invalid JWT Token");
-      } else {
-        request.username = payload.username;
-        next();
-      }
-    });
-  }
-};
 
 const makeServerAndDataBaseStart = async () => {
   try {
@@ -53,6 +30,28 @@ const makeServerAndDataBaseStart = async () => {
 };
 
 makeServerAndDataBaseStart();
+
+const authenticateToken = (request, response, next) => {
+  let jwtToken;
+  const authHeader = request.headers["authorization"];
+  if (authHeader !== undefined) {
+    jwtToken = authHeader.split(" ")[1];
+  }
+  if (jwtToken === undefined) {
+    response.status(401);
+    response.send("Invalid JWT Token");
+  } else {
+    jwt.verify(jwtToken, "secretKey", (error, payload) => {
+      if (error) {
+        response.status(401);
+        response.send("Invalid JWT Token");
+      } else {
+        request.username = payload.username;
+        next();
+      }
+    });
+  }
+};
 
 //api for user registration
 app.post("/register/", async (request, response) => {
@@ -74,7 +73,7 @@ app.post("/register/", async (request, response) => {
       response.send("User created successfully");
     }
   } else {
-    response.status(200);
+    response.status(400);
     response.send("User already exists");
   }
 });
@@ -92,10 +91,13 @@ app.post("/login/", async (request, response) => {
   } else {
     let passwordCheck = await bcrypt.compare(password, userExists.password);
     if (passwordCheck) {
-      let jwtToken = jwt.sign({ username: userExists.username }, "secretKey");
+      let payload = {
+        username: username,
+      };
+      let jwtToken = jwt.sign(payload, "secretKey");
       response.status(200);
       console.log(jwtToken);
-      response.send(jwtToken);
+      response.send({ jwtToken });
     } else {
       response.status(400);
       response.send("Invalid password");
@@ -116,7 +118,7 @@ app.get("/user/tweets/feed/", authenticateToken, async (request, response) => {
   tweet ON follower.following_user_id = tweet.user_id 
  INNER JOIN user 
   ON user.user_id = tweet.user_id  
-  WHERE follower.follower_user_id = ${user_id} LIMIT 4;`;
+  WHERE follower.follower_user_id = ${user_id} ORDER BY tweet.tweet_id DESC LIMIT 4;`;
 
   let getArray = await db.all(getQuery);
   response.status(200);
@@ -206,9 +208,6 @@ app.get(
     AND tweet.tweet_id = ${tweetId};`;
 
     let getArray = await db.all(getQuery);
-
-    // let likes = [];
-
     let normal = getArray.map((object) => {
       return object.likes;
     });
@@ -216,7 +215,7 @@ app.get(
       likes: normal,
     };
     console.log(normal);
-    if (getArray.likes === null) {
+    if (getArray.length === 0) {
       response.status(401);
       response.send("Invalid Request");
     } else {
@@ -253,7 +252,7 @@ app.get(
       replies: getArray,
     };
     console.log(getArray);
-    if (getArray === undefined) {
+    if (getArray.length === 0) {
       response.status(401);
       response.send("Invalid Request");
     } else {
@@ -297,8 +296,10 @@ app.post("/user/tweets/", authenticateToken, async (request, response) => {
     `SELECT user_id FROM user WHERE username = '${username}';`
   );
 
-  let date = format(new Date(), "MM/dd/yyyy hh:mm:ss");
-  console.log(date);
+  //   let date = format(new Date(), "MM/dd/yyyy hh:mm:ss");
+  //   console.log(date);
+  let date = new Date();
+  date = date.toString();
   let insertQuery = `INSERT INTO tweet(tweet,user_id,date_time)
     VALUES('${tweet}',${user_id},'${date}');`;
 
